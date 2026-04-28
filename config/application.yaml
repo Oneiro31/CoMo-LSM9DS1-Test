@@ -1,0 +1,8 @@
+name: CoMo-LSM9DS1-Test
+author: ""
+clients:
+  controller:
+    runtime: browser
+    default: true
+  device:
+    runtime: node
