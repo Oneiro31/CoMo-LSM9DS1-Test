@@ -26,7 +26,7 @@ console.log(`
 const server = new Server(config);
 configureHttpRouter(server);
 
-const como = new ComoServer(server, {
+const como = new ComoServer(server,  {
   projectsDirname: PROJECTS_DIRNAME,
 });
 
@@ -46,14 +46,3 @@ if (!como.projectManager.projectExists(DEFAULT_PROJECT)) {
 }
 
 await como.setProject(path.join(PROJECTS_DIRNAME, DEFAULT_PROJECT));
-
-const comoteSource = await como.sourceManager.createSource({
-  type: 'comote',
-  id: 'comote',
-  port: 8080,
-  verbose: false,
-});
-
-
-const playerId = await como.playerManager.createPlayer(comoteSource);
-

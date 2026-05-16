@@ -1,6 +1,6 @@
 type: development
 port: 8000
-serverAddress: '129.102.80.104'
+serverAddress: '192.168.0.100'
 useHttps: false
 httpsInfos:
   cert: null

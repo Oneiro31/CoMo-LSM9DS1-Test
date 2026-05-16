@@ -3,12 +3,12 @@ import { Client } from '@soundworks/core/client.js';
 import { loadConfig, launcher } from '@soundworks/helpers/node.js';
 
 import ComoClient from '@ircam/como/ComoClient.js';
+import { getTime } from '@ircam/sc-utils';
 
 // - General documentation: https://soundworks.dev/
 // - API documentation:     https://soundworks.dev/api
 // - Issue Tracker:         https://github.com/collective-soundworks/soundworks/issues
 // - Wizard & Tools:        `npx soundworks`
-
 
 
 async function bootstrap() {
@@ -20,15 +20,76 @@ async function bootstrap() {
   const como = new ComoClient(client);
   await como.start();
 
+  const logger = como.logger;
+  //const sync = como.sync;
+
 
   const lsm9ds1Source = await como.sourceManager.createSource({
     type: 'lsm9ds1',
     id: 'lsm9ds1',
+    interval: 10,
     verbose: false,
   });
 
-  const playerId  = await como.playerManager.createPlayer(lsm9ds1Source);
-  //const player = await como.playerManager.getPlayer(playerId);
+  const playerId1  = await como.playerManager.createPlayer(lsm9ds1Source);
+  const lsm9ds1State = await como.sourceManager.getSource(lsm9ds1Source);
+
+
+  const comoteSource = await como.sourceManager.createSource({
+    type: 'comote',
+    id: 'comote',
+    interval: 10,
+    port: 8901,
+    verbose: false,
+  });
+
+  const playerId2 = await como.playerManager.createPlayer(comoteSource);
+  const comoteState = await como.sourceManager.getSource(comoteSource);
+
+
+  const t0 = getTime();
+
+  const lsm9ds1Writer = await logger.createWriter('lsm9ds1_test.txt', { bufferSize: 200 });
+  const comoteWriter = await logger.createWriter('comote_test.txt', { bufferSize: 200 });
+
+  let comoteIndex = 0;
+  let lsm9ds1Index = 0;
+
+
+  lsm9ds1State.onUpdate(updates => {
+    if ('frame' in updates) {
+
+      const time = getTime() - t0;
+
+      lsm9ds1Writer.write({
+        time: time,
+        index: lsm9ds1Index++,
+        frame: updates.frame,
+      });
+    }
+  });
+
+
+  comoteState.onUpdate(updates => {
+    if ('frame' in updates) {
+
+      const time = getTime() - t0;
+
+      comoteWriter.write({
+        time: time,
+        index: comoteIndex++,
+        frame: updates.frame,
+      });
+    }
+  });
+
+
+  process.on('SIGINT', async () => {
+    await comoteWriter.close();
+    await lsm9ds1Writer.close();
+    await como.stop();
+    process.exit(0);
+  });
 
 }
 
