@@ -24,6 +24,7 @@ async function bootstrap() {
   //const sync = como.sync;
 
 
+  // ---- Source LSM9DS1 -----
   const lsm9ds1Source = await como.sourceManager.createSource({
     type: 'lsm9ds1',
     id: 'lsm9ds1',
@@ -35,6 +36,7 @@ async function bootstrap() {
   const lsm9ds1State = await como.sourceManager.getSource(lsm9ds1Source);
 
 
+  // ---- Source CoMote -----
   const comoteSource = await como.sourceManager.createSource({
     type: 'comote',
     id: 'comote',
@@ -47,13 +49,37 @@ async function bootstrap() {
   const comoteState = await como.sourceManager.getSource(comoteSource);
 
 
+  // ---- Source R-IoT -----
+  const riotSource = await como.sourceManager.createSource({
+    type: 'riot',
+    id: '0',
+    port: 8001,
+    verbose: false,
+  });
+
+  const playerId3  = await como.playerManager.createPlayer(riotSource);
+  const riotState = await como.sourceManager.getSource(riotSource);
+
+
   const t0 = getTime();
 
-  const lsm9ds1Writer = await logger.createWriter('lsm9ds1_test.txt', { bufferSize: 200 });
-  const comoteWriter = await logger.createWriter('comote_test.txt', { bufferSize: 200 });
+  const lsm9ds1Writer = await logger.createWriter(
+    'lsm9ds1_imu_interval_10ms_test.txt',
+    { bufferSize: 600 },
+  );
+  const comoteWriter = await logger.createWriter(
+    'comote_imu_interval_10ms_test.txt',
+    { bufferSize: 600 },
+  );
+  const riotWriter = await logger.createWriter(
+    'riot_imu_interval_10ms_test.txt',
+    { bufferSize: 600 },
+  );
+
 
   let comoteIndex = 0;
   let lsm9ds1Index = 0;
+  let riotIndex = 0;
 
 
   lsm9ds1State.onUpdate(updates => {
@@ -84,15 +110,29 @@ async function bootstrap() {
   });
 
 
+  riotState.onUpdate(updates => {
+    if ('frame' in updates) {
+
+      const time = getTime() - t0;
+
+      riotWriter.write({
+        time: time,
+        index: riotIndex++,
+        frame: updates.frame,
+      });
+    }
+  });
+
+
   process.on('SIGINT', async () => {
     await comoteWriter.close();
     await lsm9ds1Writer.close();
+    await riotWriter.close();
     await como.stop();
     process.exit(0);
   });
 
 }
-
 
 
 // The launcher allows to launch multiple clients in the same terminal window
