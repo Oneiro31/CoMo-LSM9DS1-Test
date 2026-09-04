@@ -63,16 +63,16 @@ async function bootstrap() {
   const t0 = getTime();
 
   const lsm9ds1Writer = await logger.createWriter(
-    'lsm9ds1_jitter_5ms_test.txt',
+    'lsm9ds1_imu_data.txt',
     { bufferSize: 600 },
   );
 
   const comoteWriter = await logger.createWriter(
-    'comote_jitter_5ms_test.txt',
+    'comote_imu_data.txt',
     { bufferSize: 600 },
   );
   const riotWriter = await logger.createWriter(
-    'riot_jitter_5ms_test.txt',
+    'riot_imu_data.txt',
     { bufferSize: 600 },
   );
 
