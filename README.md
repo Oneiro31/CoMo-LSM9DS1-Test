@@ -170,26 +170,6 @@ src/clients/controller.js     Browser controller
 src/clients/device.js         Source creation and frame recording
 ```
 
-## Useful commands
-
-Build the application:
-
-```bash
-npm run build
-```
-
-Start an already-built server:
-
-```bash
-npm run start
-```
-
-Check the source code:
-
-```bash
-npm run lint
-```
-
 ## Credits
 
 This project uses:
