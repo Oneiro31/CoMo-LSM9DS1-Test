@@ -1,121 +1,206 @@
-# `como-health`
+# CoMo LSM9DS1 Test — Motion Source Evaluation
 
-Thanks for using soundworks!
+This project is a lightweight evaluation application built with [CoMo](https://github.com/ircam-ismm/como) and [Soundworks](https://soundworks.dev/).
 
-## Links / Resources
+It records motion frames produced by three different sources:
 
-- [General Documentation / Tutorials](https://soundworks.dev/)
-- [API](https://soundworks.dev/api)
-- [Examples](https://github.com/collective-soundworks/soundworks-examples)
-- [Issue Tracker](https://github.com/collective-soundworks/soundworks/issues)
-- [Working with Max/MSP](https://github.com/collective-soundworks/soundworks-max)
+- **LSM9DS1**
+- **CoMote**
+- **R-IoT**
 
-## Soundworks wizard
+The frames are saved in separate `.txt` files for offline analysis and comparison of the sources, including their inertial measurements and temporal behaviour.
 
-The soundworks wizard is a interactive command line tool that gives you access to a bunch of high-level routines, such as:
+## How it works
 
-- Create and configure new clients
-- Install / uninstall plugins and related libraries
-- Find some documentation
-- Create environment config files
-- etc.
+The Node.js `device` client creates the three motion sources and listens for their frames:
+
+- The **LSM9DS1** is connected directly to the Raspberry Pi through I²C.
+- **CoMote** transmits its data through WebSockets on port `8901`.
+- The **R-IoT** transmits OSC messages on port `8001`.
+
+For each source, the application records:
+
+- a relative reception time;
+- an independent frame index;
+- the original CoMo motion frame.
+
+All frames are timestamped by the `device` client relative to the same starting time (`t0`). This provides a common software time reference for aligning the recordings during offline analysis. It does not constitute hardware-level synchronization between the sensors.
+
+## Requirements
+
+- A computer running the Soundworks server
+- A Raspberry Pi running the Node.js `device` client
+- An LSM9DS1 inertial sensor connected to the Raspberry Pi
+- A CoMote and/or R-IoT device
+- Node.js and npm
+- All devices connected to the same local network
+
+## Installation
+
+Clone the repository:
 
 ```bash
-npx soundworks
+git clone https://github.com/Oneiro31/CoMo-LSM9DS1-Test.git
+cd CoMo-LSM9DS1-Test
 ```
 
-## Available npm scripts
+Install the dependencies:
 
-### `npm run dev`
+```bash
+npm install
+```
 
-Launch the application in development mode. Watch file system, compile and/or bundle files on change, and restart the server when needed.
+The project must be installed on both the computer running the server and the Raspberry Pi running the `device` client.
 
-### `npm run build`
+## Network configuration
 
-Build the application. Compile and bundle the sources without launching the server.
+Edit:
 
-### `npm run start`
+```text
+config/env-default.yaml
+```
 
-Launch the server without building the application. Basically a shortcut for `node ./.build/server/index.js`.
+Set `serverAddress` to the local IP address of the computer running the Soundworks server:
 
-### `npm run watch [name]` _(node clients only)_
+```yaml
+type: development
+port: 8000
+serverAddress: "192.168.1.xxx"
+useHttps: false
+```
 
-Launch the `[name]` client and restart when the sources are updated. 
+The computer and the Raspberry Pi must use the same server address and be connected to the same local network.
 
-For example, if you are developing an application with a node client, you should run the `dev` script (to build the sources and start the server) in one terminal:
+The external motion sources must send their data to the Raspberry Pi:
+
+- **CoMote:** Raspberry Pi IP address, WebSocket port `8901`
+- **R-IoT:** Raspberry Pi IP address, OSC port `8001`
+
+## Running the application
+
+### 1. Start the server
+
+On the computer:
 
 ```bash
 npm run dev
 ```
 
-And launch and watch the node client(s) (e.g. called `thing`) in another terminal. The client will automatically restart when the sources are re-compiled by the `dev` script:
+The controller interface is then available at:
+
+```text
+http://<server-address>:8000
+```
+
+### 2. Start the recording client
+
+On the Raspberry Pi:
 
 ```bash
-npm run watch thing
+npm run watch device
 ```
 
-## Configuring the build
+The application starts recording automatically when frames are received from the motion sources.
 
-Browser clients are compiled using [swc](https://swc.rs/). By default, builds are made with the `es2022` target which supports a number of modern JavaScript features.
+### 3. Stop the recording
 
-If you need to support older browsers, you can configure the build in the `.swcrc` file (cf. [https://swc.rs/docs/configuration/swcrc](https://swc.rs/docs/configuration/swcrc))
+Press:
 
-## Environment variables
-
-### `ENV`
-
-Define which environment config file should be used to run the application. Environment config files are located in the `/config` directory, are prefixed with `env-`. 
-
-For example, given the following config files:
-
-```
-├─ config
-│  ├─ env-default.json
-│  └─ env-prod.json   
+```text
+Ctrl+C
 ```
 
-To start the server the `/config/env-prod.js` configuration file, you should run:
+This closes the three file writers before stopping the application and ensures that the buffered data are saved correctly.
+
+## Output files
+
+The recordings are stored in the Soundworks logger data directory (`.data/`). The current implementation creates one file per source:
+
+```text
+lsm9ds1_imu_interval_10ms_test.txt
+comote_imu_interval_10ms_test.txt
+riot_imu_interval_10ms_test.txt
+```
+
+Each recorded entry follows this general structure:
+
+```json
+{
+  "time": 5.51,
+  "index": 42,
+  "frame": [
+    {
+      "source": "lsm9ds1",
+      "timestamp": 3759.17,
+      "accelerometer": {},
+      "gyroscope": {},
+      "magnetometer": {},
+      "gravity": {}
+    }
+  ]
+}
+```
+
+The `time` field corresponds to the common relative time assigned by the `device` client. The source-specific timestamps and inertial measurements remain available inside the original frame.
+
+## Changing the test configuration
+
+The source parameters are currently defined in:
+
+```text
+src/clients/device.js
+```
+
+This file can be edited to change:
+
+- the acquisition interval;
+- the CoMote and R-IoT communication ports;
+- the output file names;
+- the logger buffer size;
+- the sources included in a test.
+
+The current LSM9DS1 and CoMote acquisition interval is set to `10 ms`.
+
+## Main project files
+
+```text
+config/env-default.yaml       Network configuration
+src/server.js                 Soundworks and CoMo server
+src/clients/controller.js     Browser controller
+src/clients/device.js         Source creation and frame recording
+```
+
+## Useful commands
+
+Build the application:
 
 ```bash
-ENV=prod npm run start
-``` 
+npm run build
+```
 
-If no `env` file is found, the application will generate a default config suitable for most development uses.
-
-### `PORT`
-
-Override the port defined in the config file. 
-
-For example, to launch the server on port `3000` whatever the `port` value defined in the default configuration file, you should run:
+Start an already-built server:
 
 ```bash
-PORT=3000 npm run start
+npm run start
 ```
 
-## Emulating clients
-
-In development it can be convenient to emulate several clients in the same browser window or same terminal
-
-### Browsers clients
-
-To emulate several browser clients in the same window, just append the query parameter `?emulate=[num_clients]` to the URL. For example to launch 10 clients side by side in the same window, you should run:
-
-```
-http://127.0.0.1:8000?emulate=10
-```
-
-### Node clients
-
-To emulate several node clients in the same terminal, you can use the `EMULATE=[num_clients]` environment variable. For example to launch 10 clients in parallel from the same terminal, you should run:
+Check the source code:
 
 ```bash
-EMULATE=10 npm run watch thing
+npm run lint
 ```
 
 ## Credits
 
-[soundworks](https://soundworks.dev) is developed by the ISMM team at Ircam
+This project uses:
+
+- [CoMo](https://github.com/ircam-ismm/como), developed by the ISMM team at Ircam
+- [Soundworks](https://soundworks.dev/)
 
 ## License
 
 [BSD-3-Clause](./LICENSE)
+
+
+
+

@@ -21,7 +21,6 @@ async function bootstrap() {
   await como.start();
 
   const logger = como.logger;
-  //const sync = como.sync;
 
 
   // ---- Source LSM9DS1 -----
@@ -64,21 +63,22 @@ async function bootstrap() {
   const t0 = getTime();
 
   const lsm9ds1Writer = await logger.createWriter(
-    'lsm9ds1_imu_interval_10ms_test.txt',
+    'lsm9ds1_jitter_5ms_test.txt',
     { bufferSize: 600 },
   );
+
   const comoteWriter = await logger.createWriter(
-    'comote_imu_interval_10ms_test.txt',
+    'comote_jitter_5ms_test.txt',
     { bufferSize: 600 },
   );
   const riotWriter = await logger.createWriter(
-    'riot_imu_interval_10ms_test.txt',
+    'riot_jitter_5ms_test.txt',
     { bufferSize: 600 },
   );
 
 
-  let comoteIndex = 0;
   let lsm9ds1Index = 0;
+  let comoteIndex = 0;
   let riotIndex = 0;
 
 
@@ -124,9 +124,10 @@ async function bootstrap() {
   });
 
 
+
   process.on('SIGINT', async () => {
-    await comoteWriter.close();
     await lsm9ds1Writer.close();
+    await comoteWriter.close();
     await riotWriter.close();
     await como.stop();
     process.exit(0);
