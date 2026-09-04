@@ -24,7 +24,7 @@ For each source, the application records:
 - an independent frame index;
 - the original CoMo motion frame.
 
-All frames are timestamped by the `device` client relative to the same starting time (`t0`). This provides a common software time reference for aligning the recordings during offline analysis. It does not constitute hardware-level synchronization between the sensors.
+All frames are timestamped by the `device` client relative to a common clock . This provides a common software time reference for aligning the recordings during offline analysis. It does not constitute hardware-level synchronization between the sensors.
 
 ## Requirements
 
