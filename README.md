@@ -117,9 +117,9 @@ This closes the three file writers before stopping the application and ensures t
 The recordings are stored in the Soundworks logger data directory (`.data/`). The current implementation creates one file per source:
 
 ```text
-lsm9ds1_imu_interval_10ms_test.txt
-comote_imu_interval_10ms_test.txt
-riot_imu_interval_10ms_test.txt
+lsm9ds1_imu_data.txt
+comote_imu_data.txt
+riot_imu_data.txt
 ```
 
 Each recorded entry follows this general structure:
@@ -174,8 +174,10 @@ src/clients/device.js         Source creation and frame recording
 
 This project uses:
 
-- [CoMo](https://github.com/ircam-ismm/como), developed by the ISMM team at Ircam
+- [CoMo](https://github.com/ircam-ismm/como), 
 - [Soundworks](https://soundworks.dev/)
+
+developed by the ISMM team at Ircam
 
 ## License
 
